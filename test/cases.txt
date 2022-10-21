@@ -1,41 +1,151 @@
-# Booleans
-
-#t
-#f
-
-==>
-
-Program(Boolean, Boolean)
-
-# Identifiers
-
-one
-Two_Three
-
-==>
-
-Program(Identifier, Identifier)
+# Atoms
+one. twoThree. ==> Program(Atom, FullStop, Atom, FullStop)
 
 # Strings
+"". "hello". "one\"\\two". "hello
+world". ==> Program(String, FullStop, String, FullStop, String, FullStop, String, FullStop)
 
-"hello"
-"one\"\\two"
+# Quoted Atom
+''. 'test'. 'test\''. 'test
+multiline'. ==> Program(QuotedAtom, FullStop, QuotedAtom, FullStop, QuotedAtom, FullStop, QuotedAtom, FullStop)
 
-==>
+# BackQuoteString
+``. `test`. `test\``. `test
+multiline`. ==> Program(BackQuoteString, FullStop, BackQuoteString, FullStop, BackQuoteString, FullStop, BackQuoteString, FullStop)
 
-Program(String, String)
+# Application 0
+foo(). ==> Program(Application(Functor(Atom), "(", ")"), FullStop)
 
-# Applications
+# Application 1
+foo(bar). ==> Program(Application(Functor(Atom), "(", Atom, ")"), FullStop)
 
-(begin
-  (when #t
-    (print (concat "hello" " " "world")))
-  (print "DONE"))
+# Application 2
+foo(bar, baz). ==> Program(Application(Functor(Atom), "(", Atom, Comma, Atom, ")"), FullStop)
 
-==>
+# Application 3
+bar(A,B,C) :- nth0(A,B,C). ==>
+  Program(
+    Rule(
+      Application(Functor(Atom), "(", Variable, Comma, Variable, Comma, Variable, ")"),
+      ":-",
+      Application(Functor(Atom), "(", Variable, Comma, Variable, Comma, Variable, ")")),
+    FullStop)
 
-Program(Application(
-  Identifier,
-  Application(Identifier, Boolean, Application(
-    Identifier, Application(Identifier, String, String, String)))
-  Application(Identifier, String)))
+# Quoted Atom Application.
+'foo'(bar, baz). ==> Program(Application(Functor(QuotedAtom), "(", Atom, Comma, Atom, ")"), FullStop)
+
+# Operator Applcation.
+*(bar, baz). ==> Program(Application(Functor("*"), "(", Atom, Comma, Atom, ")"), FullStop)
+
+# + Operator Applcation.
++(bar, baz). ==> Program(UnaryOperation("+", Parentheses("(", Atom, Comma, Atom, ")")), FullStop)
+
+# Number
+4. ==> Program(Number, FullStop)
+
+# Grouped Integers
+10_000_000. 10 000 000. ==> Program(Number, FullStop, Number, FullStop)
+
+# Hex Number
+0x12. ==> Program(HexNumber, FullStop)
+
+# Octal Number
+0o777. ==> Program(OctalNumber, FullStop)
+
+# Binary Number
+0b101. ==> Program(BinaryNumber, FullStop)
+
+# Rational
+3r4. ==> Program(Rational, FullStop)
+
+# Float
+1.25. ==> Program(Float, FullStop)
+
+# Float 2
+1.25e5. ==> Program(Float, FullStop)
+
+# Float 3
+1.25e-5. ==> Program(Float, FullStop)
+
+# Float 4
+1e5. ==> Program(Float, FullStop)
+
+# Float 5
+1e-5. ==> Program(Float, FullStop)
+
+# Binary operator
+4 + 8. ==> Program(BinaryOperation(Number, "+", Number), FullStop)
+
+# Binary operators
+4 + 2 + 3. ==> Program(BinaryOperation(BinaryOperation(Number, "+", Number), "+", Number), FullStop)
+
+# Binary operators
+4 * 2 * 3. ==> Program(BinaryOperation(BinaryOperation(Number, "*", Number), "*", Number), FullStop)
+
+# Binary operators ^
+4 ^ 2 ^ 3. ==> Program(BinaryOperation(Number, "^", BinaryOperation(Number, "^", Number)), FullStop)
+
+# Binary operators
+4 + 2 * 3. ==> Program(BinaryOperation(Number, "+", BinaryOperation(Number, "*", Number)), FullStop)
+
+# Binary operators
+4 + 2 ^ 3. ==> Program(BinaryOperation(Number, "+", BinaryOperation(Number, "^", Number)), FullStop)
+
+# Binary operators
+2 ** 3. ==> Program(BinaryOperation(Number, "**", Number), FullStop)
+
+# Binary operators ** non-associative
+2 ** 3 ** 4. ==> Program(BinaryOperation(Number, "**", Number, ⚠("**"), ⚠(Number)), FullStop)
+
+# Unary operator
++4. ==> Program(UnaryOperation("+", Number), FullStop)
+
+# Unary operator 2
+-4. ==> Program(UnaryOperation("-", Number), FullStop)
+
+# Unary operator 3
++-4. ==> Program(UnaryOperation("+", UnaryOperation("-", Number)), FullStop)
+
+# String2
+36'prolog. ==> Program(String2, FullStop)
+
+# String2
+36'123PROLOG. ==> Program(String2, FullStop)
+
+# String2
+36'123. ==> Program(String2, FullStop)
+
+# String3
+0'⛳. ==> Program(String3, FullStop)
+
+# Parentheses
+(1+2). ==> Program(Parentheses("(", BinaryOperation(Number, "+", Number), ")"), FullStop)
+
+# Not parenthesis
+f(1+2). ==> Program(Application(Functor(Atom), "(", BinaryOperation(Number, "+", Number), ")"), FullStop)
+
+# Rule 1.
+foo(X,Y) :- bar(X,Y),baz(Y). ==> 
+    Program(
+        Rule(
+            Application(Functor(Atom), "(", Variable, Comma, Variable, ")"),
+            ":-",
+            Application(Functor(Atom), "(", Variable, Comma, Variable, ")"),
+            Comma,
+            Application(Functor(Atom), "(", Variable, ")")),
+        FullStop)
+
+# Lists
+[1, 2, 3]. []. ==> Program(List("[", Number, Comma, Number, Comma, Number, "]"), FullStop, List("[", "]"), FullStop)
+
+# Dictionary Lookup
+X = point{x:1,y:2}.x. ==>
+  Program(
+    BinaryOperation(
+      Variable,
+      "=",
+      BinaryOperation(
+        Dict(Atom, "{", BinaryOperation(Atom, ":", Number), Comma, BinaryOperation(Atom, ":", Number), "}"),
+        Dot,
+        Atom)),
+    FullStop)
